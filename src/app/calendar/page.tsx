@@ -1,45 +1,64 @@
-// src/app/calendar/page.tsx
-
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  addMonths,
+  subMonths,
+  isSameMonth,
+  isSameDay,
+} from "date-fns";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
-import { addDays, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+
+type Appointment = {
+  date: string;
+  name: string;
+  time: string;
+};
 
 export default function CalendarPage() {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [appointments, setAppointments] = useState<
-    { date: Date; name: string; time: string }[]
-  >([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [name, setName] = useState("");
   const [time, setTime] = useState("");
-  const [open, setOpen] = useState(false);
 
-  const today = new Date();
-  const start = startOfMonth(today);
-  const end = endOfMonth(today);
-  const days = eachDayOfInterval({ start, end });
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
 
-  const handleDayClick = (date: Date) => {
-    setSelectedDate(date);
-    setOpen(true);
+  const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+
+  const handleDateClick = (day: Date) => {
+    setSelectedDate(day);
+    setIsDialogOpen(true);
   };
 
   const handleBook = () => {
     if (selectedDate && name && time) {
-      setAppointments([...appointments, { date: selectedDate, name, time }]);
-      setOpen(false);
+      const newAppointment = {
+        date: format(selectedDate, "yyyy-MM-dd"),
+        name,
+        time,
+      };
+      setAppointments([...appointments, newAppointment]);
+      setIsDialogOpen(false);
       setName("");
       setTime("");
     }
@@ -47,51 +66,72 @@ export default function CalendarPage() {
 
   const renderAppointments = (date: Date) => {
     return appointments
-      .filter(
-        (a) => format(a.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
-      )
+      .filter((a) => a.date === format(date, "yyyy-MM-dd"))
       .map((a, i) => (
         <div
           key={i}
-          className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded mt-1 truncate"
+          className="text-xs bg-blue-100 text-blue-800 rounded px-1 mt-1 truncate"
         >
-          {a.name} - {a.time}
+          {a.name} @ {a.time}
         </div>
       ));
   };
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">
-        Appointments - {format(today, "MMMM yyyy")}
-      </h1>
-      <div className="grid grid-cols-7 gap-2 text-center">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="font-medium text-sm text-gray-600">
-            {day}
-          </div>
-        ))}
-        {days.map((day) => (
+  const renderCells = () => {
+    const days = [];
+    let day = startDate;
+
+    while (day <= endDate) {
+      for (let i = 0; i < 7; i++) {
+        const cloneDay = day;
+        days.push(
           <div
-            key={day.toISOString()}
-            className="border h-24 p-1 cursor-pointer rounded hover:bg-gray-100 flex flex-col text-sm"
-            onClick={() => handleDayClick(day)}
+            key={cloneDay.toString()}
+            className={`h-28 border p-2 text-sm cursor-pointer hover:bg-muted transition-all overflow-hidden ${
+              !isSameMonth(cloneDay, monthStart) ? "text-muted-foreground" : ""
+            } ${
+              isSameDay(cloneDay, selectedDate ?? new Date())
+                ? "bg-primary text-white"
+                : ""
+            }`}
+            onClick={() => handleDateClick(cloneDay)}
           >
-            <span className="font-medium">{format(day, "d")}</span>
-            {renderAppointments(day)}
+            <div>{format(cloneDay, "d")}</div>
+            {renderAppointments(cloneDay)}
           </div>
+        );
+        day = addDays(day, 1);
+      }
+    }
+
+    return <div className="grid grid-cols-7 gap-px bg-border">{days}</div>;
+  };
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center justify-between mb-4">
+        <Button onClick={handlePrevMonth}>Previous</Button>
+        <h2 className="text-xl font-semibold">
+          {format(currentMonth, "MMMM yyyy")}
+        </h2>
+        <Button onClick={handleNextMonth}>Next</Button>
+      </div>
+      <div className="grid grid-cols-7 text-center font-medium text-muted-foreground mb-2">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+          <div key={day}>{day}</div>
         ))}
       </div>
+      {renderCells()}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Book Appointment</DialogTitle>
-            <DialogDescription>
-              {selectedDate && format(selectedDate, "MMMM do, yyyy")}
-            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid gap-4 py-4">
+            <div className="text-sm text-muted-foreground">
+              {selectedDate && format(selectedDate, "PPP")}
+            </div>
             <Input
               placeholder="Patient Name"
               value={name}
@@ -104,7 +144,7 @@ export default function CalendarPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleBook}>Book</Button>
