@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   format,
   startOfMonth,
@@ -29,8 +29,10 @@ type Appointment = {
   name: string;
   time: string;
 };
+type ViewMode = "month" | "week" | "day";
 
 export default function CalendarPage() {
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -103,7 +105,7 @@ export default function CalendarPage() {
       ));
   };
 
-  const renderCells = () => {
+  const renderMonthCells = () => {
     const days = [];
     let day = startDate;
 
@@ -137,21 +139,103 @@ export default function CalendarPage() {
     (a) => a.date === format(selectedDate ?? new Date(), "yyyy-MM-dd")
   );
 
+  const renderWeekView = () => {
+    const start = startOfWeek(currentMonth, { weekStartsOn: 0 }); // Sunday
+    const hours = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
+
+    return (
+      <div className="grid grid-cols-8 border-t border-l text-sm">
+        {/* Top Row */}
+        <div className="border-b border-r bg-muted h-10 flex items-center justify-center font-medium">
+          Time
+        </div>
+        {Array.from({ length: 7 }).map((_, i) => {
+          const date = addDays(start, i);
+          return (
+            <div
+              key={i}
+              className="border-b border-r bg-muted h-10 flex items-center justify-center font-medium"
+            >
+              {format(date, "EEE d")}
+            </div>
+          );
+        })}
+
+        {/* Time Rows */}
+        {hours.map((hour) => (
+          <React.Fragment key={hour}>
+            <div className="border-r border-b h-20 flex items-start justify-center pt-1 text-muted-foreground">
+              {`${hour}:00`}
+            </div>
+            {Array.from({ length: 7 }).map((_, i) => {
+              const day = addDays(start, i);
+              const dateStr = format(day, "yyyy-MM-dd");
+              const appointment = appointments.find(
+                (a) =>
+                  a.date === dateStr &&
+                  a.time.startsWith(`${hour.toString().padStart(2, "0")}`)
+              );
+
+              return (
+                <div
+                  key={i}
+                  className="border-r border-b h-20 p-1 hover:bg-muted transition cursor-pointer relative"
+                  onClick={() => handleDateClick(day)}
+                >
+                  {appointment && (
+                    <div className="absolute inset-1 bg-blue-100 text-blue-800 text-xs p-1 rounded overflow-hidden">
+                      {appointment.name} @ {appointment.time}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <Button onClick={handlePrevMonth}>Previous</Button>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex gap-2">
+          <Button onClick={handlePrevMonth}>Previous</Button>
+          <Button onClick={handleNextMonth}>Next</Button>
+        </div>
         <h2 className="text-xl font-semibold">
           {format(currentMonth, "MMMM yyyy")}
         </h2>
-        <Button onClick={handleNextMonth}>Next</Button>
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === "month" ? "default" : "outline"}
+            onClick={() => setViewMode("month")}
+          >
+            Month
+          </Button>
+          <Button
+            variant={viewMode === "week" ? "default" : "outline"}
+            onClick={() => setViewMode("week")}
+          >
+            Week
+          </Button>
+          <Button
+            variant={viewMode === "day" ? "default" : "outline"}
+            onClick={() => setViewMode("day")}
+          >
+            Day
+          </Button>
+        </div>
       </div>
+
       <div className="grid grid-cols-7 text-center font-medium text-muted-foreground mb-2">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <div key={day}>{day}</div>
         ))}
       </div>
-      {renderCells()}
+      {viewMode === "month" && renderMonthCells()}
+      {viewMode === "week" && renderWeekView()}
+      {viewMode === "day" && renderDayView()}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
