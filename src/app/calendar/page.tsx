@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 type Appointment = {
+  id: number;
   date: string;
   name: string;
   time: string;
@@ -36,6 +37,7 @@ export default function CalendarPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [name, setName] = useState("");
   const [time, setTime] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
@@ -48,20 +50,44 @@ export default function CalendarPage() {
   const handleDateClick = (day: Date) => {
     setSelectedDate(day);
     setIsDialogOpen(true);
+    setEditingId(null);
+    setName("");
+    setTime("");
   };
 
-  const handleBook = () => {
-    if (selectedDate && name && time) {
-      const newAppointment = {
-        date: format(selectedDate, "yyyy-MM-dd"),
+  const handleBookOrUpdate = () => {
+    if (!selectedDate || !name || !time) return;
+
+    const formattedDate = format(selectedDate, "yyyy-MM-dd");
+
+    if (editingId !== null) {
+      setAppointments((prev) =>
+        prev.map((app) => (app.id === editingId ? { ...app, name, time } : app))
+      );
+    } else {
+      const newAppointment: Appointment = {
+        id: Date.now(),
+        date: formattedDate,
         name,
         time,
       };
-      setAppointments([...appointments, newAppointment]);
-      setIsDialogOpen(false);
-      setName("");
-      setTime("");
+      setAppointments((prev) => [...prev, newAppointment]);
     }
+
+    setIsDialogOpen(false);
+    setName("");
+    setTime("");
+    setEditingId(null);
+  };
+
+  const handleEdit = (app: Appointment) => {
+    setEditingId(app.id);
+    setName(app.name);
+    setTime(app.time);
+  };
+
+  const handleDelete = (id: number) => {
+    setAppointments((prev) => prev.filter((app) => app.id !== id));
   };
 
   const renderAppointments = (date: Date) => {
@@ -69,7 +95,7 @@ export default function CalendarPage() {
       .filter((a) => a.date === format(date, "yyyy-MM-dd"))
       .map((a, i) => (
         <div
-          key={i}
+          key={a.id}
           className="text-xs bg-blue-100 text-blue-800 rounded px-1 mt-1 truncate"
         >
           {a.name} @ {a.time}
@@ -107,6 +133,10 @@ export default function CalendarPage() {
     return <div className="grid grid-cols-7 gap-px bg-border">{days}</div>;
   };
 
+  const appointmentsForSelectedDate = appointments.filter(
+    (a) => a.date === format(selectedDate ?? new Date(), "yyyy-MM-dd")
+  );
+
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
@@ -126,7 +156,9 @@ export default function CalendarPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Book Appointment</DialogTitle>
+            <DialogTitle>
+              {editingId ? "Edit Appointment" : "Book Appointment"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="text-sm text-muted-foreground">
@@ -142,12 +174,42 @@ export default function CalendarPage() {
               value={time}
               onChange={(e) => setTime(e.target.value)}
             />
+            <div className="mt-4 space-y-2">
+              {appointmentsForSelectedDate.map((app) => (
+                <div
+                  key={app.id}
+                  className="flex items-center justify-between text-sm bg-muted p-2 rounded"
+                >
+                  <span>
+                    {app.name} @ {app.time}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(app)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(app.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleBook}>Book</Button>
+            <Button onClick={handleBookOrUpdate}>
+              {editingId ? "Update" : "Book"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
