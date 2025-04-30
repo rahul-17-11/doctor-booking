@@ -1,6 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏥 Doctor Appointment Booking System
 
-## Getting Started
+A modern, responsive doctor appointment scheduling app built with **Next.js**, **TypeScript**, **Tailwind CSS**, and **shadcn/ui**, inspired by Google Calendar.
+
+👉 **Live Demo**: [https://app-doctor-appointment.netlify.app/](https://app-doctor-appointment.netlify.app/)
+
+---
+
+## 📸 Features
+
+- 📅 Interactive Calendar View (Month, Week, Day)
+- ➕ Book Appointments by clicking on any time slot
+- ✏️ Edit and Delete existing appointments
+- 📱 Mobile-first, fully responsive design
+- 🎨 Clean and professional UI using `shadcn/ui`
+- 💾 Local state-based — no backend API needed
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
+- **Calendar View**: Custom implementation with support for day/week/month
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the Repo
+
+```bash
+git clone https://github.com/rahul-17-11/doctor-booking.git
+cd doctor-booking
+
 
 First, run the development server:
 
