@@ -1,112 +1,116 @@
+// src/app/calendar/page.tsx
+
 "use client";
 
 import { useState } from "react";
-import {
-  startOfMonth,
-  startOfWeek,
-  addDays,
-  format,
-  isSameMonth,
-} from "date-fns";
-
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { addDays, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 
 export default function CalendarPage() {
-  const [currentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [appointments, setAppointments] = useState<
+    { date: Date; name: string; time: string }[]
+  >([]);
+  const [name, setName] = useState("");
+  const [time, setTime] = useState("");
+  const [open, setOpen] = useState(false);
 
-  const startDate = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 });
-  const days = Array.from({ length: 35 }, (_, i) => addDays(startDate, i));
+  const today = new Date();
+  const start = startOfMonth(today);
+  const end = endOfMonth(today);
+  const days = eachDayOfInterval({ start, end });
 
-  const handleDateClick = (date: Date) => {
+  const handleDayClick = (date: Date) => {
     setSelectedDate(date);
-    setDialogOpen(true);
+    setOpen(true);
+  };
+
+  const handleBook = () => {
+    if (selectedDate && name && time) {
+      setAppointments([...appointments, { date: selectedDate, name, time }]);
+      setOpen(false);
+      setName("");
+      setTime("");
+    }
+  };
+
+  const renderAppointments = (date: Date) => {
+    return appointments
+      .filter(
+        (a) => format(a.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+      )
+      .map((a, i) => (
+        <div
+          key={i}
+          className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded mt-1 truncate"
+        >
+          {a.name} - {a.time}
+        </div>
+      ));
   };
 
   return (
-    <main className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Appointment Calendar</h1>
-
-      <div className="grid grid-cols-7 gap-1 border rounded-lg overflow-hidden">
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">
+        Appointments - {format(today, "MMMM yyyy")}
+      </h1>
+      <div className="grid grid-cols-7 gap-2 text-center">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div
-            key={day}
-            className="text-center font-medium bg-gray-100 dark:bg-gray-800 p-2"
-          >
+          <div key={day} className="font-medium text-sm text-gray-600">
             {day}
           </div>
         ))}
-
-        {days.map((day, i) => (
+        {days.map((day) => (
           <div
-            key={i}
-            onClick={() => handleDateClick(day)}
-            className={`h-24 border border-gray-200 dark:border-gray-700 p-2 text-sm cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900 ${
-              isSameMonth(day, currentDate) ? "" : "text-gray-400"
-            }`}
+            key={day.toISOString()}
+            className="border h-24 p-1 cursor-pointer rounded hover:bg-gray-100 flex flex-col text-sm"
+            onClick={() => handleDayClick(day)}
           >
-            <div className="text-right text-xs">{format(day, "d")}</div>
+            <span className="font-medium">{format(day, "d")}</span>
+            {renderAppointments(day)}
           </div>
         ))}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              Book Appointment
-            </DialogTitle>
+            <DialogTitle>Book Appointment</DialogTitle>
             <DialogDescription>
-              {selectedDate ? format(selectedDate, "PPP") : ""}
+              {selectedDate && format(selectedDate, "MMMM do, yyyy")}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="name" className="text-right">
-                Name
-              </label>
-              <input
-                id="name"
-                placeholder="Patient Name"
-                className="col-span-3 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="time" className="text-right">
-                Time
-              </label>
-              <input
-                id="time"
-                type="time"
-                className="col-span-3 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          <div className="space-y-4">
+            <Input
+              placeholder="Patient Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
           </div>
-
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setDialogOpen(false)}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md"
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
-            </button>
-            <button
-              onClick={() => setDialogOpen(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
-            >
-              Book
-            </button>
-          </div>
+            </Button>
+            <Button onClick={handleBook}>Book</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 }
