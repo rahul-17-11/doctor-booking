@@ -105,6 +105,48 @@ export default function CalendarPage() {
       ));
   };
 
+  const renderDayView = () => {
+    const hours = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
+    const dateStr = format(currentMonth, "yyyy-MM-dd"); // Use currentMonth as current day
+
+    return (
+      <div className="grid grid-cols-2 border-t border-l text-sm">
+        <div className="border-b border-r bg-muted h-10 flex items-center justify-center font-medium">
+          Time
+        </div>
+        <div className="border-b border-r bg-muted h-10 flex items-center justify-center font-medium">
+          {format(currentMonth, "EEEE, MMM d")}
+        </div>
+
+        {hours.map((hour) => {
+          const appointment = appointments.find(
+            (a) =>
+              a.date === dateStr &&
+              a.time.startsWith(`${hour.toString().padStart(2, "0")}`)
+          );
+
+          return (
+            <React.Fragment key={hour}>
+              <div className="border-b border-r h-20 flex items-start justify-center pt-1 text-muted-foreground">
+                {`${hour}:00`}
+              </div>
+              <div
+                className="border-b border-r h-20 p-1 hover:bg-muted transition cursor-pointer relative"
+                onClick={() => handleDateClick(currentMonth)}
+              >
+                {appointment && (
+                  <div className="absolute inset-1 bg-blue-100 text-blue-800 text-xs p-1 rounded overflow-hidden">
+                    {appointment.name} @ {appointment.time}
+                  </div>
+                )}
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderMonthCells = () => {
     const days = [];
     let day = startDate;
